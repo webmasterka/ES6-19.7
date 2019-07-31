@@ -1,129 +1,166 @@
-// ----- Controls -----
-
-class Controls extends React.Component {
-    static propTypes = {
-        className: React.PropTypes.string.isRequired,
-        buttons: React.PropTypes.array.isRequired
-    }
-
-    render() {
-        return (
-            <nav className="controls">
-                {this.props.buttons.map((button, index) => {
-                        return (
-                            <a href={'#'} onClick={() => button.action()} className={this.props.className} key={index}>{button.text}</a>
-                        )
-                })}
-            </nav>
-        )
-    }
-
-};
-
-// ----- App -----
-
-class App extends React.Component {
-    render() {
-        return (
-            <div className="app">
-                <Stopwatch />
-            </div>
-        )
-    }
-};
-
-
-// ----- Stopwatch -----
-
 class Stopwatch extends React.Component {
-    constructor() {
-        super();
+	constructor() {
+		super();
+		this.startTimer = this.startTimer.bind(this);
+		this.stopTimer = this.stopTimer.bind(this);
+		this.resetTimer = this.resetTimer.bind(this);
+		this.saveTime = this.saveTime.bind(this);
+		this.clearTimes = this.clearTimes.bind(this);
+		this.timeIsRunning = this.timeIsRunning.bind(this);
+		this.state = {
+			isRunning: false,
+			runningTime: {
+				minutes: 0,
+				seconds: 0,
+				miliseconds: 0
+			},
+			savedTimes: []
+		}
+	}
 
-        this.intervalId = null;
-        this.state = {
-            running: false,
-            times: {
-                minutes: 0,
-                seconds: 0,
-                miliseconds: 0
-            }
-        }
+	startTimer() {
+		if (!this.state.isRunning) {
+			this.setState({
+				isRunning: true
+			})
+			this.myTimer = setInterval(this.timeIsRunning, 10)
+		}
+	}
 
-    }
+	stopTimer() {
+		clearInterval(this.myTimer);
+		this.setState({
+			isRunning: false
+		})
+	}
 
-    reset() {
-        this.setState({
-            times: {
-                minutes: 0,
-                seconds: 0,
-                miliseconds: 0
-            }   
-        })
-    }
+	resetTimer() {
+		let runningTime = this.state.runningTime
+		Object.keys(runningTime).forEach(e => runningTime[e] = 0)
+		this.setState({
+			runningTime
+		});
+	}
 
-    pad0(value) {
-            let result = value.toString();
-            return result.length < 2 ? '0' + result : result;
-    }
+	saveTime() {
+		const currentTimeData = {
+			time: format(this.state.runningTime),
+			id: this.state.savedTimes.length + 1
+		};
+		const timeData = [...this.state.savedTimes, currentTimeData]
+		this.setState({
+			savedTimes: timeData
+		})
+	}
 
-    format(times) {
-        return `${this.pad0(times.minutes)}:${this.pad0(times.seconds)}:${this.pad0(Math.floor(times.miliseconds))}`;
-    }
+	clearTimes() {
+		this.setState({
+			savedTimes: []
+		})
+	}
 
-    start() {
-        if (!this.state.running) {
-            this.setState({
-                running: true
-            })
-            this.intervalId = setInterval(() => this.calculate(), 10);
-        }
-    }
+	timeIsRunning() {
+		const currentRunningTime = {...this.state.runningTime};
+		currentRunningTime.miliseconds++;
+		if (currentRunningTime.miliseconds >= 100) {
+			currentRunningTime.seconds++ ,
+			currentRunningTime.miliseconds -= 100
+		}
+		if (currentRunningTime.seconds >= 60) {
+			currentRunningTime.minutes++ ,
+			currentRunningTime.seconds -= 60
+		}
+		this.setState({
+			runningTime: currentRunningTime
+		})
+	}
 
-    calculate() {
-        if (!this.state.running) return;
-        const times = this.state.times;
+	render() {
+		return (
+			<div className='stopwatch__module'>
+				<nav className="stopwatch__controls">
+					<StartButton onClick={this.startTimer} /><br />
+					<StopButton onClick={this.stopTimer} /><br />
+					<ResetButton onClick={this.resetTimer} /><br />
+					<SaveTimeButton onClick={this.saveTime} /><br />
+					<ClearTimesButton onClick={this.clearTimes} /><br />
+				</nav>
+				<Timer formattedRunningTime={format(this.state.runningTime)} />
+				<SavedTimesList savedTimes={this.state.savedTimes} />
 
-        times.miliseconds += 1;
-        if (times.miliseconds >= 100) {
-            times.seconds += 1;
-            times.miliseconds = 0;
-        }
-        if (times.seconds >= 60) {
-            times.minutes += 1;
-            times.seconds = 0;
-        }
-
-        this.setState({
-            times
-        })
-    }
-
-    stop() {
-        this.setState({
-            running: false
-        })
-        clearInterval(this.intervalId);
-        this.intervalId = null;
-    }
-
-    render() {
-        const formatedTime = this.format(this.state.times);
-        const buttons = [
-            {text: "Start", action: this.start.bind(this)},
-            {text: "Stop", action: this.stop.bind(this)},
-            {text: "Reset", action: this.reset.bind(this)}
-        ]
-        return (
-            <div>
-                <Controls className="buttons" buttons={buttons}/>
-                <div className="stopwatch">{formatedTime}</div>
-            </div>
-        )
-    }
-
+			</div>
+		)
+	}
 }
 
-// ----- rendering -----
 
-const app = <App />;
-ReactDOM.render(app, document.getElementById('app'));
+
+class StartButton extends React.Component {
+	render() {
+		return <a href='#' className="stopwatch__button" id="start" onClick={this.props.onClick}>Start</a>
+	}
+}
+
+class StopButton extends React.Component {
+	render() {
+		return <a href='#' className="stopwatch__button" id="stop" onClick={this.props.onClick}>Stop</a>
+	}
+}
+
+class ResetButton extends React.Component {
+	render() {
+		return <a href='#' className="stopwatch__button" id="reset" onClick={this.props.onClick}>Reset</a>
+	}
+}
+
+class SaveTimeButton extends React.Component {
+	render() {
+		return <a href='#' className="stopwatch__button" id="save_time" onClick={this.props.onClick}>Save current time</a>
+	}
+}
+
+class ClearTimesButton extends React.Component {
+	render() {
+		return <a href='#' className="stopwatch__button" id="clear_times" onClick={this.props.onClick}>Clear saved times</a>
+	}
+}
+
+class Timer extends React.Component {
+	render() {
+		return <div className="stopwatch__timer">
+			{this.props.formattedRunningTime}
+		</div>
+	}
+}
+
+class SavedTimesList extends React.Component {
+	render() {
+		const singleTimes = this.props.savedTimes.map((singleSavedTime) =>
+			<li key={singleSavedTime.id}>
+				{singleSavedTime.time}
+			</li>
+		);
+		return (
+			<ul>
+				{singleTimes}
+			</ul>
+		)
+	}
+}
+
+function format(times) {
+	return `${pad0(times.minutes)}:${pad0(times.seconds)}:${pad0(times.miliseconds)}`;
+};
+
+function pad0(value) {
+	let result = value.toString();
+	if (result.length < 2) {
+		result = '0' + result;
+	}
+	return result;
+};
+
+
+
+const stopwatch = <Stopwatch />;
+ReactDOM.render(stopwatch, document.getElementById('app'));
